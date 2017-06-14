@@ -64,8 +64,11 @@ def load_stock_data():
 days = 10
 # x_train,y_train = read_stock_data(days)
 x, y = load_stock_data()
-x_train, x_test = np.split(x, [int(x.size * 0.8)])
-y_train, y_test = np.split(y, [int(x.size * 0.8)])
+x_train, x_test = np.split(x, [int(len(x)* 0.8)])
+print(x.size)
+y_train, y_test = np.split(y, [int(len(y) * 0.8)])
+
+print(x_test,y_test)
 
 model = Sequential()
 model.add(Dense(100, input_dim=4 * days - 1))
@@ -89,7 +92,7 @@ model.compile(loss='binary_crossentropy',
               optimizer=Adam(),
               metrics=['accuracy'])
 
-model.fit(x_train, y_train, nb_epoch=5, shuffle=True,
+model.fit(x_train, y_train, epochs=5, shuffle=True,
           batch_size=16)
-score = model.evaluate(x_test, y_test, batch_size=16)
-print(score)
+score = model.evaluate(x_test, y_test)
+print(score[0],score[1])
