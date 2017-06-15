@@ -4,6 +4,14 @@ from keras.models import Sequential
 from keras.optimizers import SGD, Adam
 from keras.utils import np_utils
 
+import tensorflow as tf
+from keras.backend import tensorflow_backend
+
+config = tf.ConfigProto(gpu_options=tf.GPUOptions(allow_growth=True))
+session = tf.Session(config=config)
+tensorflow_backend.set_session(session)
+
+
 (X_train, y_train), (X_test, y_test) = mnist.load_data()
 
 X_train = X_train.reshape(60000, 784)
@@ -27,10 +35,13 @@ model = Sequential()
 # here, 20-dimensional vectors.
 model.add(Dense(1000, input_dim=784))
 model.add(Activation('relu'))
-# model.add(Dropout(0.3))
-# model.add(Dense(1000))
-# model.add(Activation('relu'))
 model.add(Dropout(0.3))
+# model.add(Dense(100))
+# model.add(Activation('relu'))
+# model.add(Dropout(0.3))
+# model.add(Dense(100))
+# model.add(Activation('relu'))
+# model.add(Dropout(0.3))
 model.add(Dense(100))
 model.add(Activation('relu'))
 model.add(Dropout(0.3))
@@ -39,12 +50,12 @@ model.add(Activation('softmax'))
 
 model.summary()
 
-sgd = SGD(lr=0.1, decay=1e-6, momentum=0.9, nesterov=True)
+# sgd = SGD(lr=0.1, decay=1e-6, momentum=0.9, nesterov=True)
 model.compile(loss='categorical_crossentropy',
               optimizer=Adam(),
               metrics=['accuracy'])
 
-model.fit(X_train, y_train,nb_epoch = 3,shuffle=True,
+model.fit(X_train, y_train,epochs = 1,shuffle=True,
            batch_size = 16)
 score = model.evaluate(X_test, y_test, batch_size=16),
 print(score)
