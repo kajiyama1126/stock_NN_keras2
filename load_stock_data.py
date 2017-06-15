@@ -3,7 +3,7 @@ import os
 
 import numpy as np
 import pandas as pd
-from keras.layers import Dense, Dropout, Activation
+from keras.layers import Dense, Dropout, Activation, normalization
 from keras.models import Sequential
 from keras.optimizers import Adam
 
@@ -70,15 +70,50 @@ def load_stock_data():
 
     return stock_data, teacher_data
 
+def test_data(file_name,days):
+    basename = ['start', 'high', 'low', 'last']
+    column_name = copy.copy(basename)
+    for i in range(days - 1):
+        for j in basename:
+            column_name.append(j + str(i + 1))
+
+    column_name.pop(0)
+    place = 'D:\Pycharm Project\stock_NN\stock_data\connect_for15days'
+    os.chdir(place)
+    directory = os.listdir(place)
+    if os.path.isfile(file_name):
+        data = pd.read_csv(file_name, encoding='cp932', index_col=0)
+    else:
+        return None
+
+    teacher_name = ['teacher_only_up_down']
+    stock_data_onedata = np.empty((0, 4 * days - 1), float)
+    teacher_onedata = np.empty((0, 1), int)
+    index_name = data.index
+    for name1 in index_name:
+        stock_data_tmp = np.array([data.ix[name1, column_name]])
+        teacher_data_tmp_tmp = data.ix[name1, teacher_name]
+        if teacher_data_tmp_tmp[0] > 0:
+            tmp = int(1)
+        else:
+            tmp = int(0)
+
+        teacher_data_tmp = np.array([[tmp]])
+        stock_data_onedata = np.append(stock_data_onedata, stock_data_tmp, axis=0)
+        teacher_data_onedata = np.append(teacher_data_onedata, teacher_data_tmp, axis=0)
+
+    return stock_data_onedata,teacher_data_onedata
+
 
 days = 15
 # x,y= read_stock_data(days)
 x, y = load_stock_data()
-x_train, x_test = np.split(x, [int(len(x)* 0.8)])
-print(x.size)
-y_train, y_test = np.split(y, [int(len(y) * 0.8)])
+# x_train, x_test = np.split(x, [int(len(x)* 0.8)])
+# print(x.size)
+x_train,y_train = x,y
+# y_train, y_test = np.split(y, [int(len(y) * 0.8)])
 
-print(x_test,y_test)
+# print(x_test,y_test)
 
 model = Sequential()
 model.add(Dense(1000, input_dim=4 * days - 1))
@@ -86,12 +121,15 @@ model.add(Activation('relu'))
 model.add(Dropout(0.2))
 model.add(Dense(2000))
 model.add(Activation('relu'))
+model.add(normalization.BatchNormalization())
 model.add(Dropout(0.5))
 model.add(Dense(2000))
 model.add(Activation('relu'))
+model.add(normalization.BatchNormalization())
 model.add(Dropout(0.5))
 model.add(Dense(100))
-model.add(Activation('relu'))
+model.add(Activation('tanh'))
+# model.add(normalization.BatchNormalization())
 model.add(Dropout(0.5))
 # model.add(Dense(2))
 # model.add(Activation('relu'))
@@ -105,7 +143,13 @@ model.compile(loss='binary_crossentropy',
               optimizer=Adam(),
               metrics=['accuracy'])
 
-model.fit(x_train, y_train, epochs=10, shuffle=True,
+
+model.fit(x_train, y_train, epochs=1, shuffle=True,
           batch_size=16)
-score = model.evaluate(x_test, y_test)
-print(score[0],score[1])
+
+os.chdir('D:\Pycharm Project\stock_NN_keras2')
+model.save('testmodel3.h5')
+
+# y_pre = model.predict(x_test,batch_size=1)
+# score = model.evaluate(x_test, y_test)
+# print(score[0],score[1])
