@@ -282,11 +282,14 @@ class load_data_separate_dekidaka(load_date_separate):
         for stock_code in self.code:
             onedata = data.ix[stock_code, column_name]
             onedata2 = data.ix[stock_code, dekidaka_name]
-
+            print(onedata)
             if normalization_option:
-                onedata = zscore(onedata)
+                onedata =zscore(onedata)
                 onedata2 = zscore(onedata2)
                 print(onedata)
+
+
+
             stock_data_tmp = np.array([np.hstack((onedata,onedata2))])
             teacher_data_tmp_tmp = data.ix[stock_code, teacher_name]
             if teacher_data_tmp_tmp[0] > 0:
@@ -344,3 +347,126 @@ class load_data_separate_dekidaka(load_date_separate):
         np.savetxt('y_train_test_norm' + todayname +'code'+'.csv', teacher_data, delimiter=',')
 
         return stock_data, teacher_data
+
+class LSTM_load_data_separate_dekidaka(load_data_separate_dekidaka):
+    def read_data_oneday(self,data,column_name,teacher_name,dekidaka_name,normalization_option):
+
+        days = self.days
+        # index_name = data.index
+        stock_data_onedata = np.empty((0, days,6 ), float)
+        teacher_data_onedata = np.empty((0, 1), int)
+
+        for stock_code in self.code:
+            onedata = data.ix[stock_code, column_name]
+            onedata2 = data.ix[stock_code, dekidaka_name]
+
+            if normalization_option:
+                onedata = np.array(zscore(onedata))
+                onedata2 = np.array(zscore(onedata2))
+                # print(onedata)
+                onedata = np.reshape(onedata,(days,5))
+                onedata2 = np.reshape(onedata2, (days, 1))
+                # print(onedata2)
+            stock_data_tmp =np.array([ np.concatenate((onedata,onedata2),axis =1)])
+            teacher_data_tmp_tmp = data.ix[stock_code, teacher_name]
+            if teacher_data_tmp_tmp[0] > 0:
+                tmp = int(1)
+            else:
+                tmp = int(0)
+
+            teacher_data_tmp = np.array([[tmp]])
+
+            stock_data_onedata = np.append(stock_data_onedata, stock_data_tmp, axis=0)
+            teacher_data_onedata = np.append(teacher_data_onedata, teacher_data_tmp, axis=0)
+        # print(stock_data_onedata)
+        return stock_data_onedata, teacher_data_onedata
+
+    def read_stock_data(self):
+        days = self.days
+        i= 0
+        basename = ['start', 'high', 'low', 'last','vwap']
+        base_dekidakaka = ['number of sale']
+        column_name = copy.copy(basename)
+        dekidaka = copy.copy(base_dekidakaka)
+        for i1 in range(days - 1):
+            for j in basename:
+                column_name.append(j + str(i1 + 1))
+            for j in base_dekidakaka:
+                dekidaka.append(j + str(i1 + 1))
+
+        teacher_name = ['teacher_only_up_down']
+
+        place = self.place
+        directory = os.listdir(place)
+
+        stock_data = np.empty((0, days,6), float)
+        teacher_data = np.empty((0, 1), int)
+        i = 0
+        for name in directory:
+            i += 1
+            if i<self.start:
+                pass
+            else:
+                print(name,i)
+                os.chdir(place)
+                data = pd.read_csv(name, encoding='cp932', index_col=0)
+                x,y = self.read_data_oneday(data,column_name,teacher_name,dekidaka,normalization_option=True,)
+                if i>= self.end:
+                    break
+                #
+                stock_data = np.append(stock_data, x, axis=0)
+                teacher_data = np.append(teacher_data, y, axis=0)
+                # print(stock_data)
+        today = datetime.datetime.today()
+        todayname = str(today.strftime("%Y%m%d_%H%M%S"))
+
+        # np.savetxt('x_train_test_norm' + todayname +'code'+'.csv', stock_data, delimiter=',')
+        # np.savetxt('y_train_test_norm' + todayname +'code'+'.csv', teacher_data, delimiter=',')
+
+        return stock_data, teacher_data
+
+
+#正規化追加
+class LSTM_load_data_separate_dekidaka2(LSTM_load_data_separate_dekidaka):
+    def normalization(self,a):
+        max_a = copy.copy(np.max(a))
+        min_a = copy.copy(np.min(a))
+        min_vec = np.ones_like(a) * min_a
+        # print(max_a,min_a)
+        b = (copy.copy(a)-min_vec)/(max_a-min_a)
+        return b
+
+    def read_data_oneday(self,data,column_name,teacher_name,dekidaka_name,normalization_option):
+
+        days = self.days
+        # index_name = data.index
+        stock_data_onedata = np.empty((0, days,6 ), float)
+        teacher_data_onedata = np.empty((0, 1), int)
+
+        for stock_code in self.code:
+            onedata = data.ix[stock_code, column_name]
+            onedata2 = data.ix[stock_code, dekidaka_name]
+
+            if normalization_option:
+                onedata = np.array(zscore(onedata))
+                onedata2 = np.array(zscore(onedata2))
+                onedata = self.normalization(onedata)
+                onedata2 = self.normalization(onedata2)
+
+                # print(onedata)
+                onedata = np.reshape(onedata,(days,5))
+                onedata2 = np.reshape(onedata2, (days, 1))
+                # print(onedata2)
+            stock_data_tmp =np.array([ np.concatenate((onedata,onedata2),axis =1)])
+            teacher_data_tmp_tmp = data.ix[stock_code, teacher_name]
+            if teacher_data_tmp_tmp[0] > 0:
+                tmp = int(1)
+            else:
+                tmp = int(0)
+
+            teacher_data_tmp = np.array([[tmp]])
+
+            stock_data_onedata = np.append(stock_data_onedata, stock_data_tmp, axis=0)
+            teacher_data_onedata = np.append(teacher_data_onedata, teacher_data_tmp, axis=0)
+        # print(stock_data_onedata)
+        return stock_data_onedata, teacher_data_onedata
